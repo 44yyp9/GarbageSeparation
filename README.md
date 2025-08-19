@@ -1,0 +1,2 @@
+# GarbageSeparation
+これはゴミ分別アプリのリポジトリです
