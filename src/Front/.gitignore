@@ -1,0 +1,16 @@
+# 依存関係（ライブラリ）
+/node_modules
+
+# Next.jsのビルド出力
+/.next/
+/out/
+
+# macOSのシステムファイル
+.DS_Store
+
+# 環境変数ファイル（APIキーなど秘密情報）
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
