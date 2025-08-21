@@ -6,7 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Camera, Upload, Loader2, Recycle } from "lucide-react"
+import { Camera, Upload, Loader2, Recycle, X } from "lucide-react"
 
 interface WasteResult {
   itemName: string
@@ -20,8 +20,13 @@ export default function WasteSortingApp() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [result, setResult] = useState<WasteResult | null>(null)
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const mockResults: WasteResult[] = [
     {
@@ -68,6 +73,50 @@ export default function WasteSortingApp() {
     },
   ]
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      })
+      setStream(mediaStream)
+      setIsCameraActive(true)
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+    } catch (error) {
+      console.error("カメラアクセスエラー:", error)
+      alert("カメラにアクセスできませんでした。ファイル選択をご利用ください。")
+    }
+  }
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop())
+      setStream(null)
+    }
+    setIsCameraActive(false)
+  }
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      const context = canvas.getContext("2d")
+
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      if (context) {
+        context.drawImage(video, 0, 0)
+        const imageData = canvas.toDataURL("image/jpeg")
+        setSelectedImage(imageData)
+        stopCamera()
+        analyzeImage()
+      }
+    }
+  }
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
@@ -84,8 +133,6 @@ export default function WasteSortingApp() {
     setIsAnalyzing(true)
     setResult(null)
 
-    // モックアップ解析（実際のAI解析は行いません）
-    // ランダムに結果を選択して表示します
     setTimeout(() => {
       const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)]
       setResult(randomResult)
@@ -94,7 +141,7 @@ export default function WasteSortingApp() {
   }
 
   const handleCameraClick = () => {
-    cameraInputRef.current?.click()
+    startCamera()
   }
 
   const handleUploadClick = () => {
@@ -105,12 +152,12 @@ export default function WasteSortingApp() {
     setSelectedImage(null)
     setResult(null)
     setIsAnalyzing(false)
+    stopCamera()
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* ヘッダー */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Recycle className="h-8 w-8 text-green-600" />
@@ -124,14 +171,38 @@ export default function WasteSortingApp() {
           </p>
         </div>
 
-        {/* メイン機能エリア */}
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-lg">ごみの写真を撮影してください</CardTitle>
             <CardDescription>カメラで撮影するか、ギャラリーから画像を選択してください</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!selectedImage && !isAnalyzing && !result && (
+            {isCameraActive && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-64 object-cover rounded-lg border bg-black"
+                  />
+                  <Button
+                    onClick={stopCamera}
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button onClick={capturePhoto} className="w-full h-12 bg-green-600 hover:bg-green-700" size="lg">
+                  <Camera className="mr-2 h-5 w-5" />
+                  撮影する
+                </Button>
+              </div>
+            )}
+
+            {!selectedImage && !isAnalyzing && !result && !isCameraActive && (
               <div className="space-y-3">
                 <Button onClick={handleCameraClick} className="w-full h-12 bg-green-600 hover:bg-green-700" size="lg">
                   <Camera className="mr-2 h-5 w-5" />
@@ -144,7 +215,6 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* 選択された画像 */}
             {selectedImage && (
               <div className="space-y-4">
                 <div className="relative">
@@ -157,7 +227,6 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* ローディング表示 */}
             {isAnalyzing && (
               <div className="text-center py-8 space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-green-600" />
@@ -166,7 +235,6 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* 結果表示 */}
             {result && (
               <div className="space-y-4">
                 <div className="text-center">
@@ -208,20 +276,11 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* 隠しファイル入力 */}
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+            <canvas ref={canvasRef} className="hidden" />
           </CardContent>
         </Card>
 
-        {/* フッター情報 */}
         <div className="text-center text-xs text-gray-500 space-y-1">
           <p>横浜市の分別ルールに基づいています</p>
           <p>詳細は横浜市公式サイトをご確認ください</p>
