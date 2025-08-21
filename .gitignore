@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ 必要なので無効化
 lib64/
 parts/
 sdist/
