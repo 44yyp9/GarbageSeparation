@@ -1,121 +1,127 @@
-// "use client" はNext.jsの特別な指示です。
-// これを書くことで、ユーザーの操作（クリックなど）に対応するインタラクティブなコンポーネントとして機能します。
 "use client"
 
-// Reactから必要な型（type）をインポートしています。
 import type React from "react"
 
-// Reactの「フック」という機能をインポートしています。
-// useStateは状態（例: 表示する画像、ローディング中かどうか）を管理し、
-// useRefはHTML要素（例: ファイル選択ボタン）を直接操作するために使います。
 import { useState, useRef } from "react"
-
-// UIコンポーネント（見た目の部品）をインポートしています。
-import { Button } from "@/components/ui/button" // ボタン
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card" // カード形式のコンテナ
-import { Badge } from "@/components/ui/badge" // バッジ（「ペットボトル」などのラベル表示用）
-
-// アイコンをインポートしています。
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Camera, Upload, Loader2, Recycle } from "lucide-react"
 
-// TypeScriptの「interface」という機能で、分別結果データの型（形）を定義しています。
-// これにより、データが必ずこの形に従うようになり、バグを防ぎやすくなります。
 interface WasteResult {
-  itemName: string // 品目名（例: ペットボトル）
-  category: string // 分別区分（例: 資源ごみ）
-  method: string // 出し方（例: 資源ごみの日に出す）
-  details: string[] // 注意事項（配列形式）
-  color: string // 結果表示に使う色
+  itemName: string
+  category: string
+  method: string
+  details: string[]
+  color: string
 }
 
-// このファイル全体が、ごみ分別アプリの本体となるコンポーネントです。
 export default function WasteSortingApp() {
-  // --- ここから状態管理（useState） ---
-  // 選択された画像を保持するための状態。初期値はnull（何もなし）。
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  // 解析中かどうかを管理するための状態。trueになるとローディング画面を表示します。
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  // AIの解析結果を保持するための状態。初期値はnull。
   const [result, setResult] = useState<WasteResult | null>(null)
-
-  // --- ここからDOM要素の参照（useRef） ---
-  // 画面に表示されない「ファイル選択」ボタンへの参照。
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // 画面に表示されない「カメラ」ボタンへの参照。
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  // モックアップ（ダミー）用の分別結果データです。
-  // 本来はAIがこの結果を返しますが、ここでは固定のデータをいくつか用意しています。
   const mockResults: WasteResult[] = [
     {
+      itemName: "アルミ缶",
+      category: "缶",
+      method: "缶として分別",
+      details: ["中身を空にしてください", "軽くすすいでください", "つぶさずにそのまま出してください"],
+      color: "bg-gray-100 text-gray-800",
+    },
+    {
+      itemName: "スチール缶",
+      category: "缶",
+      method: "缶として分別",
+      details: ["中身を空にしてください", "軽くすすいでください", "ラベルは付けたままで大丈夫です"],
+      color: "bg-gray-100 text-gray-800",
+    },
+    {
+      itemName: "ガラス瓶",
+      category: "びん",
+      method: "びんとして分別",
+      details: ["中身を空にしてください", "軽くすすいでください", "キャップは外してください"],
+      color: "bg-green-100 text-green-800",
+    },
+    {
       itemName: "ペットボトル",
-      category: "資源ごみ",
-      method: "資源ごみの日に出す",
-      details: [
-        "キャップとラベルを外してください",
-        "中身を空にして軽くすすいでください",
-        "透明または半透明の袋に入れてください",
-      ],
+      category: "ペットボトル",
+      method: "ペットボトルとして分別",
+      details: ["キャップとラベルを外してください", "中身を空にして軽くすすいでください", "つぶしてから出してください"],
       color: "bg-blue-100 text-blue-800",
     },
-    // ... 他のモックデータ ...
+    {
+      itemName: "プラスチック容器",
+      category: "その他",
+      method: "その他として分別",
+      details: ["汚れを落としてください", "分別が難しい場合は燃えるごみへ", "リサイクルマークを確認してください"],
+      color: "bg-orange-100 text-orange-800",
+    },
+    {
+      itemName: "紙パック",
+      category: "その他",
+      method: "その他として分別",
+      details: ["中身を空にしてください", "軽くすすいでください", "開いて乾かしてから出してください"],
+      color: "bg-orange-100 text-orange-800",
+    },
   ]
 
-  // ファイルが選択されたときに実行される関数です。
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] // 選択されたファイルを取得
+    const file = event.target.files?.[0]
     if (file) {
-      const reader = new FileReader() // ファイルを読み込むための準備
-      // ファイルの読み込みが完了したら...
+      const reader = new FileReader()
       reader.onload = (e) => {
-        // 読み込んだ画像データをstateに保存して画面に表示
         setSelectedImage(e.target?.result as string)
-        // 画像解析を開始
         analyzeImage()
       }
-      // ファイルをDataURL形式（テキスト形式）で読み込む
       reader.readAsDataURL(file)
     }
   }
 
-  // 画像を解析する（フリをする）関数です。
   const analyzeImage = () => {
-    setIsAnalyzing(true) // 解析中の状態にする
-    setResult(null) // 前回の結果をリセット
+    setIsAnalyzing(true)
+    setResult(null)
 
-    // setTimeoutを使って、AIが2秒間考えているように見せかけます。
+    // モックアップ解析（実際のAI解析は行いません）
+    // ランダムに結果を選択して表示します
     setTimeout(() => {
-      // モックデータの中からランダムに一つ結果を選びます。
       const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)]
-      setResult(randomResult) // 結果をstateに保存
-      setIsAnalyzing(false) // 解析完了の状態にする
+      setResult(randomResult)
+      setIsAnalyzing(false)
     }, 2000)
   }
 
-  // 「カメラで撮影」ボタンがクリックされたときに、隠れているカメラ入力要素をクリックさせます。
   const handleCameraClick = () => {
     cameraInputRef.current?.click()
   }
 
-  // 「ギャラリーから選択」ボタンがクリックされたときに、隠れているファイル入力要素をクリックさせます。
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
 
-  // 「もう一度撮影する」ボタンがクリックされたときに、アプリの状態を初期化する関数です。
   const resetApp = () => {
     setSelectedImage(null)
     setResult(null)
     setIsAnalyzing(false)
   }
 
-  // --- ここからが画面に表示される内容（JSX） ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* ヘッダーセクション */}
+        {/* ヘッダー */}
         <div className="text-center space-y-2">
-          {/* ... アプリのタイトルと説明 ... */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Recycle className="h-8 w-8 text-green-600" />
+            <h1 className="text-2xl font-bold text-gray-900">横浜市ごみ分別アプリ</h1>
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            身近なごみを撮影するだけで、横浜市の正しい分別方法がすぐにわかります
+          </p>
+          <p className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+            ※ これはモックアップです。実際のAI解析は行いません
+          </p>
         </div>
 
         {/* メイン機能エリア */}
@@ -125,27 +131,33 @@ export default function WasteSortingApp() {
             <CardDescription>カメラで撮影するか、ギャラリーから画像を選択してください</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 初期状態（画像も選択されておらず、解析中でもなく、結果もない）の場合に表示 */}
             {!selectedImage && !isAnalyzing && !result && (
               <div className="space-y-3">
                 <Button onClick={handleCameraClick} className="w-full h-12 bg-green-600 hover:bg-green-700" size="lg">
                   <Camera className="mr-2 h-5 w-5" />
                   カメラで撮影
                 </Button>
-                {/* ... ギャラリーボタン ... */}
+                <Button onClick={handleUploadClick} variant="outline" className="w-full h-12 bg-transparent" size="lg">
+                  <Upload className="mr-2 h-5 w-5" />
+                  ギャラリーから選択
+                </Button>
               </div>
             )}
 
-            {/* 画像が選択されたら表示 */}
+            {/* 選択された画像 */}
             {selectedImage && (
               <div className="space-y-4">
                 <div className="relative">
-                  <img src={selectedImage} alt="選択された画像" className="w-full h-48 object-cover rounded-lg border" />
+                  <img
+                    src={selectedImage || "/placeholder.svg"}
+                    alt="選択された画像"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
                 </div>
               </div>
             )}
 
-            {/* 解析中の場合にローディング画面を表示 */}
+            {/* ローディング表示 */}
             {isAnalyzing && (
               <div className="text-center py-8 space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-green-600" />
@@ -154,29 +166,30 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* 解析結果が存在する場合に結果を表示 */}
+            {/* 結果表示 */}
             {result && (
               <div className="space-y-4">
-                {/* ... 結果のタイトルとバッジ ... */}
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">判定結果</h3>
+                  <Badge className={`text-sm px-3 py-1 ${result.color}`}>{result.itemName}</Badge>
+                </div>
 
                 <Card className="bg-gray-50">
                   <CardContent className="pt-4">
                     <div className="space-y-3">
-                      {/* 分別区分 */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">分別区分</h4>
                         <p className="text-green-700 font-medium">{result.category}</p>
                       </div>
-                      {/* 出し方 */}
+
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-1">出し方</h4>
                         <p className="text-gray-700">{result.method}</p>
                       </div>
-                      {/* 注意事項 */}
+
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">注意事項</h4>
                         <ul className="space-y-1">
-                          {/* details配列の各項目をリストとして表示 */}
                           {result.details.map((detail, index) => (
                             <li key={index} className="text-sm text-gray-600 flex items-start">
                               <span className="text-green-600 mr-2">•</span>
@@ -195,9 +208,16 @@ export default function WasteSortingApp() {
               </div>
             )}
 
-            {/* 実際にファイル選択を行うためのinput要素。hiddenクラスで画面上は見えなくしている。 */}
+            {/* 隠しファイル入力 */}
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </CardContent>
         </Card>
 
