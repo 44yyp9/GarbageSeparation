@@ -18,6 +18,10 @@ if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump([], f)
 
+@app.get("/")
+async def root():
+    return {"message": "FastAPI backend is running on Vercel"}
+
 # 保存API
 @app.post("/save")
 async def save_result(data: dict = Body(...)):
