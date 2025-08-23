@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # モデル読み込み
-model = YOLO("3garbage_best.pt")
+model = YOLO("bottle+can_ver2_best.pt")
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
