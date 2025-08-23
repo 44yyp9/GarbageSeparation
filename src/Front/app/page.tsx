@@ -68,7 +68,7 @@ const analyzeImage = async (imageData: string) => {
     formData.append("file", blob, "image.jpg")
 
     // --- 推論リクエスト ---
-    const res = await fetch("各ネットワークのURLを入手してください1/predict", {
+    const res = await fetch("https://xxx-ai.vercel.app/predict", {
       method: "POST",
       body: formData,
     })
@@ -93,7 +93,7 @@ const analyzeImage = async (imageData: string) => {
     setResult(newResult)
 
     // --- 保存リクエスト ---
-    await fetch("各ネットワークのURLを入手してください2/save", {
+    await fetch("https://yyy-back.vercel.app/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
