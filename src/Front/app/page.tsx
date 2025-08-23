@@ -68,7 +68,7 @@ const analyzeImage = async (imageData: string) => {
     formData.append("file", blob, "image.jpg")
 
     // --- 推論リクエスト ---
-    const res = await fetch("http://192.168.11.6:3000/predict", {
+    const res = await fetch("各ネットワークのURLを入手してください1/predict", {
       method: "POST",
       body: formData,
     })
@@ -93,7 +93,7 @@ const analyzeImage = async (imageData: string) => {
     setResult(newResult)
 
     // --- 保存リクエスト ---
-    await fetch("http://192.168.11.6:3001/save", {
+    await fetch("各ネットワークのURLを入手してください2/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
