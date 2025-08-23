@@ -58,47 +58,64 @@ export default function WasteSortingApp() {
     }
   }
 
-  const analyzeImage = async (imageData: string) => {
-    setIsAnalyzing(true)
-    setResult(null)
+const analyzeImage = async (imageData: string) => {
+  setIsAnalyzing(true)
+  setResult(null)
 
-    try {
-      const blob = await (await fetch(imageData)).blob()
-      const formData = new FormData()
-      formData.append("file", blob, "image.jpg")
+  try {
+    const blob = await (await fetch(imageData)).blob()
+    const formData = new FormData()
+    formData.append("file", blob, "image.jpg")
 
-      const res = await fetch("http://192.168.3.12:8000/predict", {
-        method: "POST",
-        body: formData,
-      })
+    // --- 推論リクエスト ---
+    const res = await fetch("http://192.168.11.6:3000/predict", {
+      method: "POST",
+      body: formData,
+    })
 
-      const data = await res.json()
-      const top = data.detections?.[0]
+    const data = await res.json()
+    const top = data.detections?.[0]
 
-      if (top && classMap[top.class_id]) {
-        setResult(classMap[top.class_id])
-      } else {
-        setResult({
-          itemName: "分類できませんでした",
-          category: "不明",
-          method: "手動で確認してください",
-          details: ["画像が不鮮明か、対応していないごみの可能性があります"],
-          color: "bg-red-100 text-red-800",
-        })
-      }
-    } catch (error) {
-      console.error("推論エラー:", error)
-      setResult({
-        itemName: "通信エラー",
+    let newResult: WasteResult
+
+    if (top && classMap[top.class_id]) {
+      newResult = classMap[top.class_id]
+    } else {
+      newResult = {
+        itemName: "分類できませんでした",
         category: "不明",
-        method: "再度お試しください",
-        details: ["サーバーが起動しているか確認してください", "ネットワーク接続を確認してください"],
+        method: "手動で確認してください",
+        details: ["画像が不鮮明か、対応していないごみの可能性があります"],
         color: "bg-red-100 text-red-800",
-      })
-    } finally {
-      setIsAnalyzing(false)
+      }
     }
+
+    setResult(newResult)
+
+    // --- 保存リクエスト ---
+    await fetch("http://192.168.11.6:3001/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        class_id: top?.class_id ?? -1,
+        itemName: newResult.itemName,
+        category: newResult.category,
+        method: newResult.method,
+      }),
+    })
+  } catch (error) {
+    console.error("推論エラー:", error)
+    setResult({
+      itemName: "通信エラー",
+      category: "不明",
+      method: "再度お試しください",
+      details: ["サーバーが起動しているか確認してください", "ネットワーク接続を確認してください"],
+      color: "bg-red-100 text-red-800",
+    })
+  } finally {
+    setIsAnalyzing(false)
   }
+}
 
   const handleCameraClick = () => cameraInputRef.current?.click()
   const handleUploadClick = () => fileInputRef.current?.click()
