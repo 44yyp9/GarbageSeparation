@@ -1,6 +1,18 @@
 # GarbageSeparation
 これはゴミ分別アプリのリポジトリです
 
+# ローカル時の使用方法
+まずはバックエンドのローカルサーバー(ローカルサーバは2つ立てます)をそれぞれ起動してください
+
+## ①AI用のサーバー
+`uvicorn main:app --reload --host 0.0.0.0 --port 3000` cdしてくださいね
+
+## ②ユーザーデータのサーバー
+`uvicorn main:app --reload --host 0.0.0.0 --port 3001` cdしてくださいね
+
+## フロントエンドの立ち上げ
+`pnpm run dev` cdしてね
+
 # 各作業場所
 - [ ] シン・Front
 - [ ] SG・Back
