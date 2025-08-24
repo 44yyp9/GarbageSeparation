@@ -68,7 +68,7 @@ const analyzeImage = async (imageData: string) => {
     formData.append("file", blob, "image.jpg")
 
     // --- 推論リクエスト ---
-    const res = await fetch("https://xxx-ai.vercel.app/predict", {
+    const res = await fetch("https://your-app.onrender.com/predict", {
       method: "POST",
       body: formData,
     })
@@ -93,7 +93,7 @@ const analyzeImage = async (imageData: string) => {
     setResult(newResult)
 
     // --- 保存リクエスト ---
-    await fetch("https://yyy-back.vercel.app/save", {
+    await fetch("https://your-app.onrender.com/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
