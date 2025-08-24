@@ -23,10 +23,10 @@ export default function WasteSortingApp() {
 
   const classMap: Record<number, WasteResult> = {
     0: {
-      itemName: "段ボール",
-      category: "紙類",
-      method: "資源ごみとして分別",
-      details: ["折りたたんでください", "紐でしばってください", "濡れているものは乾かしてください"],
+      itemName: "びん",
+      category: "ガラス類",
+      method: "びんとして分別",
+      details: ["中身を空にしてください", "軽くすすいでください", "金属キャップは外してください"],
       color: "bg-yellow-100 text-yellow-800",
     },
     1: {
